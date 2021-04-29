@@ -21,9 +21,12 @@ class LatexReader:
         return False
     
     def replace_newcommand(self, data):
-        newcommands = re.findall(r'^\\newcommand\{([^\}]*)\}\s*(\[(.*)\])?\s*\{(.*)\}\s*$', data, flags=re.M)
+        newcommands = re.findall(r'^\\newcommand(\{([^\}]*)\}|\\[^\{]*)\s*(\[(.*)\])?\s*\{(.*)\}\s*$', data, flags=re.M)
+
         for _ in range(3):
-            for a, _, b, c in newcommands:
+            for aa, a, _, b, c in newcommands:
+                if a == '':
+                    a = aa
                 if b == '':
                     c = c.replace('\\', '\\\\')
                     data = re.sub(rf'({re.escape(a)})\b', c, data)
@@ -53,15 +56,19 @@ class LatexExtractor:
         return {
             'title': self.extract_title(content),
             'abstract': self.extract_abstract(content),
-            'sections': self.extract_all_sections(content),
+            # 'sections': self.extract_all_sections(content),
         }
     
     def extract_title(self, content):
         title = re.search(r'\\title\{(.*)\}', content).group(1)
+        title = self.clean_latex(title)
+        title = re.sub(r'\s+', ' ', title)
         return title
     
     def extract_abstract(self, content):
         abstract = re.search(r'\\begin\{abstract\}([\w\W]*)\\end\{abstract\}', content).group(1)
+        abstract = self.clean_latex(abstract)
+        abstract = re.sub(r'\s+', ' ', abstract)
         return abstract
     
     def extract_all_sections(self, content):
@@ -88,8 +95,8 @@ class LatexExtractor:
         text = re.sub(r'\\begin\{align\*?\}[\w\W]*?\\end\{align\*?\}', '', text)
         text = re.sub(r'\\begin\{equation\*?\}[\w\W]*?\\end\{equation\*?\}', '', text)
         
-        text = re.sub(r'^%[^\n]*\n', '', text, flags=re.M)
-        text = re.sub(r'\$([^\$]{1,5})\$', r'\1', text)
+        text = re.sub(r'^\s*%[^\n]*\n', '', text, flags=re.M)
+        text = re.sub(r'\$([^\$]{1,30})\$', r'\1', text)
         text = re.sub(r'\$[^\$]*\$', '', text)
         text = re.sub(r'\~?\\(cite[tp]?|newcite)(\[[^\]]*\])*\{[^\}]*\}', '', text)
         text = re.sub(r'\~?\\ref\{[^\}]*\}', '', text)
@@ -98,19 +105,29 @@ class LatexExtractor:
         text = re.sub(r'\{\\(scriptsize) ([^\}]*)\}', r'\2', text)
         text = re.sub(r'\{\\(small|large) ([^\}]*)\}', r'\2', text)
         text = re.sub(r'(\`\`|\'\')', '\"', text)
+        text = re.sub(r'\`', '\'', text)
         text = re.sub(r'\\(textbf|textsc|textit|texttt)\{([^\}]*)\}', r'\2', text)
         text = re.sub(r'\\(emph|eats)\{([^\}]*)\}', r'\2', text)
         text = re.sub(r'\\(textsubscript)\{([^\}]*)\}', r'\2', text)
         text = re.sub(r'\\url\{([^\}]*)\}', r'\1', text)
         text = re.sub(r'\\paragraph\{([^\}]*)\}', r'\1', text)
         text = re.sub(r'\~?\\footnote\{[^\}]*\}', '', text)
+        text = re.sub(r'\\footnotetext(\[\d?\])?\{[^\}]*\}', '', text)
         text = re.sub(r'\\(subsection|label)\{[^\}]+\}', '', text)
+        text = re.sub(r'\\(bibliographystyle|bibliography|pagenumbering)\{[^\}]+\}', '', text)
+        text = re.sub(r'\\(vspace|hspace)\{[^\}]+\}', '', text)
+        text = re.sub(r'\\(xspace)', '', text)
         text = re.sub(r'\\item', '\n', text)
         text = re.sub(r'\\noindenttextbf', '', text)
         text = re.sub(r'\\noindent', '', text)
         text = re.sub(r'\\clearpage', '', text)
+        text = re.sub(r'\\renewcommand\*(\{[^\}]+\})+', '', text)
+        text = re.sub(r'\\(texttildelow|textasciitilde)', '~', text)
         
         text = re.sub(r'\\[a-z]+\{([^\}]+)\}', r'\1', text)
         text = re.sub(r'^\s*\\\w+(\{[^\}]*\})+(\[[^\]]*\])?\s*$', '', text, flags=re.M)
         text = re.sub(r'\{\}', '', text)
-        return text
+        text = re.sub(r'\\([%#&~])', r'\1', text)
+        text = re.sub(r'\\\\', '\n', text)
+        
+        return text.strip()

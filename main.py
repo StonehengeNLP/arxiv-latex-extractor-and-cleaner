@@ -16,7 +16,7 @@ for fname in glob.glob('papers/*'):
 
     latex_content = latex_reader(f'extracted_papers/{id}')
     data = latex_extractor.extract(latex_content)
-    
+    print(data)
     # for section in data['sections']:
     #     print('=' * 50, section, '=' * 50)
     #     text = data['sections'][section]
