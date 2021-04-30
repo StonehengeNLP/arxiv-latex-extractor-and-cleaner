@@ -56,7 +56,7 @@ class LatexExtractor:
         return {
             'title': self.extract_title(content),
             'abstract': self.extract_abstract(content),
-            # 'sections': self.extract_all_sections(content),
+            'sections': self.extract_all_sections(content),
         }
     
     def extract_title(self, content):
@@ -73,15 +73,20 @@ class LatexExtractor:
     
     def extract_all_sections(self, content):
         content = self.exclude_appendix(content)
-        sections = re.findall(r'\\section\{([^\}]*)\}', content)
+        sections = re.findall(r'\\section\{([^\}]*\}*)\}', content)
         data = {}
         for section in sections:
-            data[section] = self.extract_section(content, section)
+            section_content = self.extract_section(content, section)
+            section = self.clean_latex(section)
+            data[section] = section_content
         return data
     
     def extract_section(self, content, section_name):
         section = re.search(rf'\\section\*?{{{re.escape(section_name)}}}([\w\W]*?)(\\section|$)', content).group(1)
         section = self.clean_latex(section)
+        section = re.sub(r'\s*\n\n\s*', '\n\n', section)
+        section = section.split('\n\n')
+        section = [re.sub(r'\s+', ' ', paragraph) for paragraph in section]
         return section
     
     def exclude_appendix(self, content):
@@ -128,6 +133,8 @@ class LatexExtractor:
         text = re.sub(r'^\s*\\\w+(\{[^\}]*\})+(\[[^\]]*\])?\s*$', '', text, flags=re.M)
         text = re.sub(r'\{\}', '', text)
         text = re.sub(r'\\([%#&~])', r'\1', text)
-        text = re.sub(r'\\\\', '\n', text)
+        text = re.sub('\\\\\-', '-', text)
+        text = re.sub('\\\\', '\n', text)
         
         return text.strip()
+    
