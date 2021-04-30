@@ -11,7 +11,7 @@ latex_extractor = LatexExtractor()
 data = []
 mapping = []
 
-for fname in glob.glob('papers/*')[1:2]:
+for fname in glob.glob('papers/*'):
 
     id = fname[fname.find('\\') + 1:]
     
@@ -20,7 +20,6 @@ for fname in glob.glob('papers/*')[1:2]:
 
     latex_content = latex_reader(f'extracted_papers/{id}')
     paper = latex_extractor.extract(latex_content)
-    print(paper)
     
     data += [paper['abstract']]
     mapping += [(id, paper['title'], 'abstract')]

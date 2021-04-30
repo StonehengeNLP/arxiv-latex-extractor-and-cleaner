@@ -128,6 +128,7 @@ class LatexExtractor:
         text = re.sub(r'\\clearpage', '', text)
         text = re.sub(r'\\renewcommand\*(\{[^\}]+\})+', '', text)
         text = re.sub(r'\\(texttildelow|textasciitilde)', '~', text)
+        text = re.sub(r'_\{([^\}]*)\}', r'_\1', text)
         
         text = re.sub(r'\\[a-z]+\{([^\}]+)\}', r'\1', text)
         text = re.sub(r'^\s*\\\w+(\{[^\}]*\})+(\[[^\]]*\])?\s*$', '', text, flags=re.M)
